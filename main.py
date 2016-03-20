@@ -43,11 +43,9 @@ def preprocess_data(input_file='dataset.txt'):
         #     print line_number, customer_id, isodate, customer_map[customer_id][isodate]
         customer_map[customer_id][isodate] = supply_usage
 
-        previous_week_usage = -1
         previous_week = isodate - week_subtract
+        previous_week_usage = customer_map[customer_id].get(previous_week, 0)
         # TODO: Possibly add usage in previous hours
-        if previous_week in customer_map[customer_id]:
-            previous_week_usage = customer_map[customer_id][previous_week]
 
         data.append([convert_time(isodate.hour, isodate.minute), isodate.weekday(), isodate.timetuple().tm_yday,
                      previous_week_usage, supply_usage])
@@ -55,7 +53,7 @@ def preprocess_data(input_file='dataset.txt'):
     print 'NORMALIZING DATA...'
     data = np.array(data)
     N = data.shape[0]
-    X = preprocessing.scale(data[:, :-1]).reshape(N, 4)
+    X = preprocessing.scale(data[:, :-1]).reshape(N, data.shape[1])
     Y = np.array(data[:, -1])
 
     client = MongoClient()
@@ -99,6 +97,7 @@ def preprocess_data(input_file='dataset.txt'):
 
 def get_vector(data):
     return [
+        1.0,  # bias
         data['time_of_day'],
         data['week_day'],
         data['year_day'],
@@ -151,18 +150,24 @@ def load_data():
 
 
 def train_nn(train_set, validation_set):
+
     nn = Regressor(
         layers=[
+            Layer("Tanh", units=4),
+            Layer("Rectifier", units=4),
+            Layer("Sigmoid", units=3),
             Layer("Tanh", units=3),
+            Layer("Sigmoid", units=3),
             Layer("Tanh", units=2),
+            Layer("Rectifier", units=2),
+            Layer("Linear", units=2),
             Layer("Sigmoid")
         ],
         learning_rate=0.001,
-        batch_size=50,
-        n_iter=10000,
+        batch_size=20,
+        n_iter=1000,
         valid_set=validation_set,
-        # valid_size=0.25,
-        verbose=True
+        verbose=True,
     )
     nn.fit(train_set[0], train_set[1])
 
