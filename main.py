@@ -229,7 +229,7 @@ def mean_absolute_percentage_error(ypred, ytrue):
 
 
 start_time = time.time()
-preprocess_data()
+# preprocess_data()
 datasets = load_data()
 nn = train_nn(datasets[0], datasets[1])
 y_pred = nn.predict(datasets[2][0])
